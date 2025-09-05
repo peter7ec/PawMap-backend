@@ -1,0 +1,258 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Favorites API",
+    "version": "1.0.0",
+    "description": "API a felhasználói kedvencek kezelésére. Lehetővé teszi kedvencek létrehozását, listázását (helyszín részleteivel és értékelési átlaggal), valamint törlését."
+  },
+  "paths": {
+    "/api/favorites": {
+      "post": {
+        "tags": ["Favorites"],
+        "summary": "Új kedvenc létrehozása",
+        "description": "Hozzáad egy helyszínt a bejelentkezett felhasználó kedvenceihez.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FavoriteCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Kedvenc sikeresen létrehozva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFavorite"
+                }
+              }
+            }
+          },
+          "400": { "description": "Érvénytelen kérés." },
+          "401": { "description": "Jogosulatlan hozzáférés." },
+          "404": { "description": "A megadott helyszín nem található." }
+        }
+      },
+      "get": {
+        "tags": ["Favorites"],
+        "summary": "Összes kedvenc lekérdezése",
+        "description": "Visszaadja a kedvencek paginált listáját, beleértve a helyszín adatait és az értékelések átlagát.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Oldalszám (pozitív egész szám).",
+            "schema": { "type": "integer", "default": 1, "minimum": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Oldalméret (1-100 közötti egész szám).",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "Szűrés helyszín CUID alapján.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "Szűrés felhasználó CUID alapján.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kedvencek sikeresen lekérdezve.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePaginatedFavorites"
+                }
+              }
+            }
+          },
+          "400": { "description": "Érvénytelen lekérdezési paraméterek." },
+          "401": { "description": "Jogosulatlan hozzáférés." }
+        }
+      }
+    },
+    "/api/favorites/{id}": {
+      "delete": {
+        "tags": ["Favorites"],
+        "summary": "Kedvenc törlése",
+        "description": "Töröl egy kedvencet az azonosítója alapján. Authentikáció szükséges.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "A törlendő kedvenc CUID azonosítója.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kedvenc sikeresen törölve.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiResponse" }
+              }
+            }
+          },
+          "401": { "description": "Jogosulatlan hozzáférés." },
+          "404": { "description": "A kedvenc nem található." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "FavoriteCreateRequest": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "example": "clxud9lsc000008jncv95678i"
+          }
+        },
+        "required": ["locationId"]
+      },
+      "Favorite": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "clz2ylg1g000208ju532p9q3h" },
+          "locationId": {
+            "type": "string",
+            "example": "clxud9lsc000008jncv95678i"
+          },
+          "userId": { "type": "string", "example": "cluz12ab3000008jp1234abcd" }
+        }
+      },
+      "FavoriteWithDetails": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "clz2ylg1g000208ju532p9q3h" },
+          "locationId": {
+            "type": "string",
+            "example": "clxud9lsc000008jncv95678i"
+          },
+          "userId": {
+            "type": "string",
+            "example": "cluz12ab3000008jp1234abcd"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "cluz12ab3000008jp1234abcd"
+              },
+              "name": { "type": "string", "example": "John Doe" }
+            }
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "clxud9lsc000008jncv95678i"
+              },
+              "name": { "type": "string", "example": "Central Park" },
+              "address": { "type": "string", "example": "New York, NY" },
+              "description": {
+                "type": "string",
+                "example": "A large urban park..."
+              },
+              "images": {
+                "type": "array",
+                "items": { "type": "string", "format": "uri" }
+              },
+              "_count": {
+                "type": "object",
+                "properties": {
+                  "comments": { "type": "integer", "example": 12 },
+                  "events": { "type": "integer", "example": 3 },
+                  "reviews": { "type": "integer", "example": 42 }
+                }
+              },
+              "reviewAverage": {
+                "type": "number",
+                "format": "float",
+                "nullable": true,
+                "example": 4.5
+              }
+            }
+          }
+        }
+      },
+      "PaginatedFavorites": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "message": {
+            "type": "string",
+            "example": "Favorites retrieved successfully"
+          },
+          "currentPage": { "type": "integer", "example": 1 },
+          "pageSize": { "type": "integer", "example": 10 },
+          "totalItems": { "type": "integer", "example": 25 },
+          "totalPages": { "type": "integer", "example": 3 },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/FavoriteWithDetails" }
+          }
+        }
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": { "type": "object", "nullable": true }
+        }
+      },
+      "ApiResponseFavorite": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "data": { "$ref": "#/components/schemas/Favorite" }
+            }
+          }
+        ]
+      },
+      "ApiResponsePaginatedFavorites": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "data": { "$ref": "#/components/schemas/PaginatedFavorites" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,532 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Location API",
+    "version": "1.0.0",
+    "description": "API for managing locations, including CRUD operations and data aggregation."
+  },
+  "paths": {
+    "/api/location": {
+      "get": {
+        "tags": ["Location"],
+        "summary": "Get all locations",
+        "description": "Retrieves a paginated list of locations with aggregated data (review stats, comment and event counts). Supports filtering, sorting, and pagination.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page number to retrieve (must be a positive integer)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page (must be a positive integer)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 8,
+              "minimum": 1,
+              "example": 8
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Field to sort by",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "createdAt",
+              "example": "createdAt"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "'asc' for ascending or 'desc' for descending order",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "desc",
+              "example": "desc"
+            }
+          },
+          {
+            "name": "searchTerm",
+            "in": "query",
+            "description": "Optional search term to filter location names or addresses",
+            "required": false,
+            "schema": { "type": "string", "example": "Central Park" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Locations retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedLocationsResponse"
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid query parameters." },
+          "500": { "description": "Internal server error." }
+        }
+      },
+      "post": {
+        "tags": ["Location"],
+        "summary": "Create a new location",
+        "description": "Adds a new location to the database. Requires authentication.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateLocationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Location created successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LocationResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid request body." },
+          "401": { "description": "Unauthorized." },
+          "404": { "description": "Creating user not found." }
+        }
+      }
+    },
+    "/api/location/{locationId}": {
+      "get": {
+        "tags": ["Location"],
+        "summary": "Get a location by ID",
+        "description": "Retrieves a single location identified by its CUID. Includes related data such as reviews, comments, events, and creator info.",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "CUID string identifier of the location",
+            "schema": {
+              "type": "string",
+              "example": "clxud9lsc000008jncv95678i"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Location retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LocationResponse" }
+              }
+            }
+          },
+          "404": { "description": "Location not found." },
+          "500": { "description": "Internal server error." }
+        }
+      },
+      "patch": {
+        "tags": ["Location"],
+        "summary": "Update a location",
+        "description": "Updates an existing location. Requires authentication and ownership.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "CUID of the location to update",
+            "schema": {
+              "type": "string",
+              "example": "clxud9lsc000008jncv95678i"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateLocationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Location updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LocationResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid request body." },
+          "401": { "description": "Unauthorized." },
+          "403": {
+            "description": "Forbidden. User is not the owner of the location."
+          },
+          "404": { "description": "Location not found." }
+        }
+      },
+      "delete": {
+        "tags": ["Location"],
+        "summary": "Delete a location",
+        "description": "Deletes a location by its ID. Requires authentication and ownership.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "CUID of the location to delete",
+            "schema": {
+              "type": "string",
+              "example": "clxud9lsc000008jncv95678i"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Location deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteLocationResponse"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized." },
+          "403": {
+            "description": "Forbidden. User is not the owner of the location."
+          },
+          "404": { "description": "Location not found." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Location": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "clxud9lsc000008jncv95678i" },
+          "name": { "type": "string", "example": "Central Park" },
+          "address": { "type": "string", "example": "New York, NY 10024" },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "A large urban park in Manhattan."
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://example.com/image1.jpg"
+            }
+          },
+          "createdById": {
+            "type": "string",
+            "example": "cluz12ab3000008jp1234abcd"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-07-17T16:00:00.000Z"
+          },
+          "type": { "type": "string", "example": "PARK" }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "createdById",
+          "createdAt",
+          "type"
+        ]
+      },
+      "CreatedBy": {
+        "type": "object",
+        "properties": { "name": { "type": "string", "example": "John Doe" } }
+      },
+      "ReviewUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cluz12ab3000008jp1234abcd" },
+          "name": { "type": "string", "example": "Jane Smith" },
+          "profile_avatar": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "example": "https://example.com/avatar.jpg"
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cly0q5r7x000208k3b1cde4fg" },
+          "comment": {
+            "type": "string",
+            "example": "Great park, very relaxing!"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-07-18T10:30:00.000Z"
+          },
+          "rating": { "type": "number", "format": "float", "example": 5 },
+          "user": { "$ref": "#/components/schemas/ReviewUser" }
+        }
+      },
+      "CommentUser": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "Mike Johnson" },
+          "profile_avatar": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "example": "https://example.com/avatar2.jpg"
+          }
+        }
+      },
+      "CommentCount": {
+        "type": "object",
+        "properties": { "replies": { "type": "integer", "example": 2 } }
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cly0q7abc000408k3fg6hijkl" },
+          "content": {
+            "type": "string",
+            "example": "Any tips for a first-time visitor?"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-07-19T09:00:00.000Z"
+          },
+          "user": { "$ref": "#/components/schemas/CommentUser" },
+          "_count": { "$ref": "#/components/schemas/CommentCount" }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "description": "Represents an event at a location.",
+        "properties": {
+          "id": { "type": "string", "example": "cly0q9xyz000608k3mnopqrs" },
+          "name": { "type": "string", "example": "Summer Concert Series" },
+          "description": {
+            "type": "string",
+            "example": "Live music every Saturday."
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-08-02T18:00:00.000Z"
+          }
+        }
+      },
+      "DetailedLocation": {
+        "allOf": [{ "$ref": "#/components/schemas/Location" }],
+        "type": "object",
+        "properties": {
+          "createdBy": { "$ref": "#/components/schemas/CreatedBy" },
+          "reviews": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Review" }
+          },
+          "comments": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Comment" }
+          },
+          "events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Event" }
+          }
+        }
+      },
+      "LocationWithAggregates": {
+        "type": "object",
+        "description": "A location object including aggregated data like review stats and counts.",
+        "allOf": [{ "$ref": "#/components/schemas/Location" }],
+        "properties": {
+          "_count": {
+            "type": "object",
+            "description": "Counts of related entities.",
+            "properties": {
+              "comments": {
+                "type": "integer",
+                "description": "Total number of comments for the location.",
+                "example": 12
+              },
+              "events": {
+                "type": "integer",
+                "description": "Total number of events at the location.",
+                "example": 3
+              }
+            },
+            "required": ["comments", "events"]
+          },
+          "reviewStats": {
+            "type": "object",
+            "description": "Aggregated statistics for reviews.",
+            "properties": {
+              "average": {
+                "type": "number",
+                "format": "float",
+                "nullable": true,
+                "description": "The average rating from all reviews. Null if no reviews.",
+                "example": 4.5
+              },
+              "count": {
+                "type": "integer",
+                "description": "The total number of reviews for the location.",
+                "example": 42
+              }
+            },
+            "required": ["average", "count"]
+          }
+        },
+        "required": ["_count", "reviewStats"]
+      },
+      "PaginatedLocationsResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "message": {
+            "type": "string",
+            "example": "Locations retrieved successfully."
+          },
+          "currentPage": { "type": "integer", "example": 1 },
+          "pageSize": { "type": "integer", "example": 8 },
+          "totalItems": { "type": "integer", "example": 100 },
+          "totalPages": { "type": "integer", "example": 13 },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LocationWithAggregates" }
+          }
+        },
+        "required": [
+          "ok",
+          "message",
+          "currentPage",
+          "pageSize",
+          "totalItems",
+          "totalPages",
+          "data"
+        ]
+      },
+      "LocationResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "message": {
+            "type": "string",
+            "example": "Location operation successful"
+          },
+          "data": { "$ref": "#/components/schemas/DetailedLocation" }
+        },
+        "required": ["ok", "message", "data"]
+      },
+      "DeleteLocationResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "message": {
+            "type": "string",
+            "example": "Location deleted successfully"
+          },
+          "data": { "type": "object", "nullable": true, "example": null }
+        },
+        "required": ["ok", "message", "data"]
+      },
+      "LocationAddress": {
+        "type": "object",
+        "description": "Address object for creating/updating a location.",
+        "properties": {
+          "street": {
+            "type": "string",
+            "example": "5th Ave to Central Park West"
+          },
+          "city": { "type": "string", "example": "New York" }
+        },
+        "required": ["street"]
+      },
+      "CreateLocationRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "Grand Central Park" },
+          "address": { "$ref": "#/components/schemas/LocationAddress" },
+          "type": {
+            "type": "string",
+            "enum": ["PARK", "MUSEUM", "RESTAURANT", "OTHER"],
+            "example": "PARK"
+          },
+          "description": {
+            "type": "string",
+            "example": "A new, grander park."
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://example.com/image_new.jpg"
+            }
+          }
+        },
+        "required": ["name", "address", "images"]
+      },
+      "UpdateLocationRequest": {
+        "type": "object",
+        "description": "All fields are optional.",
+        "properties": {
+          "name": { "type": "string", "example": "Grand Central Park" },
+          "address": { "$ref": "#/components/schemas/LocationAddress" },
+          "type": {
+            "type": "string",
+            "enum": ["PARK", "MUSEUM", "RESTAURANT", "OTHER"],
+            "example": "PARK"
+          },
+          "description": {
+            "type": "string",
+            "example": "An updated description for the park."
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://example.com/image_updated.jpg"
+            }
+          }
+        }
+      }
+    }
+  }
+}

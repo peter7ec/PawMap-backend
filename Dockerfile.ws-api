@@ -1,0 +1,46 @@
+
+FROM node:18-alpine AS dependencies
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY tsconfig.base.json ./
+
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
+COPY services/rest-api/package.json ./services/rest-api/
+COPY services/ws-api/package.json ./services/ws-api/
+
+COPY packages/database/prisma ./packages/database/prisma/
+
+RUN pnpm install --frozen-lockfile --prod=false
+
+
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+
+COPY --from=dependencies /app ./
+COPY . .
+
+
+RUN pnpm --filter "ws-api^..." build
+
+
+RUN pnpm --filter ws-api deploy --prod --legacy /prod/ws-api
+
+
+
+FROM node:18-alpine AS final
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN apk add --no-cache openssl
+
+COPY --from=builder /prod/ws-api .
+
+EXPOSE 8081
+CMD ["node", "dist/index.js"]

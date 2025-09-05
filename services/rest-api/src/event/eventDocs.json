@@ -1,0 +1,595 @@
+{
+    "paths": {
+        "/api/event": {
+            "get": {
+                "tags": ["Event"],
+                "summary": "Get all events with pagination and filtering",
+                "description": "Returns paginated list of events, optionally filtered by search term.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        },
+                        "description": "Page number for pagination"
+                    },
+                    {
+                        "in": "query",
+                        "name": "pageSize",
+                        "schema": {
+                            "type": "integer",
+                            "default": 5,
+                            "minimum": 1,
+                            "maximum": 20
+                        },
+                        "description": "Number of events per page, max 20"
+                    },
+                    {
+                        "in": "query",
+                        "name": "searchTerm",
+                        "schema": { "type": "string" },
+                        "description": "Search term for event title, description, location name or address"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of events with pagination metadata",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedEventsResponse"
+                                },
+                                "examples": {
+                                    "eventsList": {
+                                        "summary": "Example paginated response",
+                                        "value": {
+                                            "ok": true,
+                                            "message": "Events fetched successfully",
+                                            "totalItems": 12,
+                                            "currentPage": 1,
+                                            "pageSize": 5,
+                                            "totalPages": 3,
+                                            "data": [
+                                                {
+                                                    "id": "cmdu123abc0001xyz",
+                                                    "createdBy": {
+                                                        "id": "user123",
+                                                        "name": "John Doe",
+                                                        "email": "john@example.com"
+                                                    },
+                                                    "location": {
+                                                        "id": "loc123",
+                                                        "name": "Conference Hall",
+                                                        "address": "123 Main St"
+                                                    },
+                                                    "comments": [
+                                                        {
+                                                            "id": "comment123",
+                                                            "content": "Looking forward to this event!",
+                                                            "replies": []
+                                                        }
+                                                    ],
+                                                    "eventParticipants": [
+                                                        {
+                                                            "id": "part123",
+                                                            "user": {
+                                                                "id": "user456",
+                                                                "name": "Jane Smith",
+                                                                "email": "jane@example.com"
+                                                            },
+                                                            "interested": true,
+                                                            "willBeThere": false
+                                                        }
+                                                    ],
+                                                    "address": "123 Main St",
+                                                    "title": "Annual Tech Conference",
+                                                    "description": "A conference about the latest technology.",
+                                                    "startsAt": "2025-08-10T09:00:00.000Z",
+                                                    "endsAt": "2025-08-10T17:00:00.000Z",
+                                                    "createdAt": "2025-07-01T12:00:00.000Z"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": ["Event"],
+                "summary": "Create a new event",
+                "security": [{ "bearerAuth": [] }],
+                "requestBody": {
+                    "description": "Event data to create",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateEventRequest"
+                            },
+                            "example": {
+                                "address": "123 Main St",
+                                "description": "Tech conference about microservices",
+                                "startsAt": "2025-08-10T09:00:00.000Z",
+                                "title": "Microservices Meetup",
+                                "endsAt": "2025-08-10T17:00:00.000Z",
+                                "locationId": "loc123"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Event successfully created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponseEvent"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Event created successfully",
+                                    "data": {
+                                        "id": "cmdu123abc0001xyz",
+                                        "createdById": "user123",
+                                        "address": "123 Main St",
+                                        "description": "Tech conference about microservices",
+                                        "startsAt": "2025-08-10T09:00:00.000Z",
+                                        "title": "Microservices Meetup",
+                                        "endsAt": "2025-08-10T17:00:00.000Z",
+                                        "locationId": "loc123",
+                                        "createdAt": "2025-07-10T12:00:00.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or missing required fields"
+                    },
+                    "401": {
+                        "description": "Unauthorized (missing or invalid token)"
+                    }
+                }
+            }
+        },
+        "/api/event/{eventId}": {
+            "get": {
+                "tags": ["Event"],
+                "summary": "Get event details by ID",
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^c[a-z0-9]{24,}$",
+                            "example": "cmdu123abc0001xyz"
+                        },
+                        "description": "Unique CUID of the event"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Details of the event",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponseEventDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found"
+                    }
+                }
+            },
+            "patch": {
+                "tags": ["Event"],
+                "summary": "Update an event by ID",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^c[a-z0-9]{24,}$"
+                        },
+                        "description": "Unique CUID of the event"
+                    }
+                ],
+                "requestBody": {
+                    "description": "Fields to update",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateEventRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponseEvent"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "event updated",
+                                    "data": {
+                                        "id": "cmdu123abc0001xyz",
+                                        "createdById": "user123",
+                                        "address": "123 New Address",
+                                        "description": "Updated description",
+                                        "startsAt": "2025-08-12T09:00:00.000Z",
+                                        "title": "Updated Meetup",
+                                        "endsAt": "2025-08-12T17:00:00.000Z",
+                                        "locationId": "loc1234",
+                                        "createdAt": "2025-07-01T12:00:00.000Z"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": { "description": "Invalid input data" },
+                    "403": { "description": "Forbidden, user is not owner" },
+                    "404": { "description": "Event not found" }
+                }
+            },
+            "delete": {
+                "tags": ["Event"],
+                "summary": "Delete an event by ID",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^c[a-z0-9]{24,}$"
+                        },
+                        "description": "Unique CUID of the event"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponseEvent"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Event deleted",
+                                    "data": {
+                                        "id": "cmdu123abc0001xyz",
+                                        "createdById": "user123",
+                                        "address": "123 Main St",
+                                        "description": "Tech conference",
+                                        "startsAt": "2025-08-10T09:00:00.000Z",
+                                        "title": "Microservices Meetup",
+                                        "endsAt": "2025-08-10T17:00:00.000Z",
+                                        "locationId": "loc123"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": { "description": "Forbidden, user is not owner" },
+                    "404": { "description": "Event not found" }
+                }
+            }
+        },
+        "/event/{eventId}/status": {
+            "patch": {
+                "tags": ["Event participation"],
+                "summary": "Set user's participation status for an event",
+                "security": [{ "bearerAuth": [] }],
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^c[a-z0-9]{24,}$"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Participation status to set",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetParticipationStatusRequest"
+                            },
+                            "example": {
+                                "interested": true,
+                                "willBeThere": false
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Participation status updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiResponseEventParticipant"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Participation status updated successfully",
+                                    "data": {
+                                        "id": "part123",
+                                        "eventId": "cmdu123abc0001xyz",
+                                        "userId": "user123",
+                                        "interested": true,
+                                        "willBeThere": false,
+                                        "createdAt": "2025-07-15T10:00:00.000Z",
+                                        "user": {
+                                            "id": "user123",
+                                            "name": "John Doe",
+                                            "email": "john@example.com"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": { "description": "Bad request, invalid data" },
+                    "401": { "description": "Unauthorized" },
+                    "404": { "description": "Event or user not found" }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "EventParticipant": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "example": "part123" },
+                    "eventId": {
+                        "type": "string",
+                        "example": "cmdu123abc0001xyz"
+                    },
+                    "userId": { "type": "string", "example": "user123" },
+                    "interested": { "type": "boolean", "example": true },
+                    "willBeThere": { "type": "boolean", "example": false },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "user": {
+                        "type": "object",
+                        "properties": {
+                            "id": { "type": "string", "example": "user123" },
+                            "name": { "type": "string", "example": "John Doe" },
+                            "email": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "john@example.com"
+                            }
+                        }
+                    }
+                }
+            },
+            "Event": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "example": "cmdu123abc0001xyz" },
+                    "createdById": { "type": "string", "example": "user123" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "locationId": {
+                        "type": ["string", "null"],
+                        "nullable": true
+                    },
+                    "address": { "type": "string", "example": "123 Main St" },
+                    "title": {
+                        "type": "string",
+                        "example": "Microservices Meetup"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Tech conference about microservices"
+                    },
+                    "startsAt": { "type": "string", "format": "date-time" },
+                    "endsAt": { "type": ["string", "null"], "nullable": true }
+                }
+            },
+            "PaginatedEventsResponse": {
+                "type": "object",
+                "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "message": {
+                        "type": "string",
+                        "example": "Events fetched successfully"
+                    },
+                    "totalItems": { "type": "integer", "example": 100 },
+                    "currentPage": { "type": "integer", "example": 1 },
+                    "pageSize": { "type": "integer", "example": 10 },
+                    "totalPages": { "type": "integer", "example": 10 },
+                    "data": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/Event" }
+                    }
+                }
+            },
+            "ApiResponseEvent": {
+                "type": "object",
+                "properties": {
+                    "ok": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/Event" }
+                }
+            },
+            "ApiResponseEventDetail": {
+                "type": "object",
+                "properties": {
+                    "ok": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                        "allOf": [
+                            { "$ref": "#/components/schemas/Event" },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "comments": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": { "type": "string" },
+                                                "content": { "type": "string" },
+                                                "createdAt": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "replies": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "content": {
+                                                                "type": "string"
+                                                            },
+                                                            "createdAt": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "user": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "email": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "eventParticipants": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/EventParticipant"
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            "UpdateEventRequest": {
+                "type": "object",
+                "properties": {
+                    "address": { "type": "string" },
+                    "description": { "type": "string" },
+                    "startsAt": { "type": "string", "format": "date-time" },
+                    "title": { "type": "string" },
+                    "endsAt": {
+                        "type": ["string", "null"],
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "locationId": { "type": "string" }
+                },
+                "minProperties": 1,
+                "example": {
+                    "title": "Updated Event Title",
+                    "description": "Updated event description"
+                }
+            },
+            "CreateEventRequest": {
+                "type": "object",
+                "required": ["address", "description", "startsAt", "title"],
+                "properties": {
+                    "address": { "type": "string" },
+                    "description": { "type": "string" },
+                    "startsAt": { "type": "string", "format": "date-time" },
+                    "title": { "type": "string" },
+                    "endsAt": {
+                        "type": ["string", "null"],
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "locationId": { "type": "string" }
+                },
+                "example": {
+                    "address": "123 Main St",
+                    "description": "An exciting tech event",
+                    "startsAt": "2025-08-10T09:00:00.000Z",
+                    "title": "Tech Conference",
+                    "endsAt": "2025-08-10T17:00:00.000Z"
+                }
+            },
+            "SetParticipationStatusRequest": {
+                "type": "object",
+                "properties": {
+                    "interested": { "type": "boolean" },
+                    "willBeThere": { "type": "boolean" }
+                },
+                "example": {
+                    "interested": true,
+                    "willBeThere": false
+                }
+            },
+            "ApiResponseEventParticipant": {
+                "type": "object",
+                "properties": {
+                    "ok": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/EventParticipant" }
+                }
+            }
+        }
+    }
+}

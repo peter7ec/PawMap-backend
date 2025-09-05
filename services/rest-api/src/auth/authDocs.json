@@ -1,0 +1,249 @@
+{
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "New user registration",
+        "description": "Creates a new user account based on the information provided.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User succesfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "message": {
+                      "type": "string",
+                      "example": "User registered successfully"
+                    },
+                    "data": { "$ref": "#/components/schemas/UserResponse" }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A user with the specified email address already exists."
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "User login",
+        "description": "Logs in the user and returns a JWT token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequestBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Succesfull login.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "message": {
+                      "type": "string",
+                      "example": "User logged in successfully"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LoginSuccessResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Invalid email or password." }
+        }
+      }
+    },
+    "/auth/update/{userId}": {
+      "patch": {
+        "tags": ["Auth"],
+        "summary": "Update user data",
+        "description": "Partially updates the authenticated user's profile fields and returns a fresh JWT reflecting the updated data.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequestBody"
+              },
+              "examples": {
+                "updateName": {
+                  "summary": "Change name only",
+                  "value": { "newName": "Új Név" }
+                },
+                "updateEmailAndAvatar": {
+                  "summary": "Change email and avatar",
+                  "value": {
+                    "newEmail": "new@example.com",
+                    "newProfile_avatar": "https://cdn.example.com/avatar.png"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User data edited.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "message": {
+                      "type": "string",
+                      "example": "User data edited!"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LoginSuccessResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No fields to update or invalid payload (e.g., empty body).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": false },
+                    "message": {
+                      "type": "string",
+                      "example": "No fields to update"
+                    },
+                    "data": { "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Forbidden: This is not your data." },
+          "404": { "description": "User does not exist." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Provide the JWT obtained from /auth/login or /auth/update responses."
+      }
+    },
+    "schemas": {
+      "RegisterRequestBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "test@example.com"
+          },
+          "name": { "type": "string", "example": "Teszt Elek" },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "Password123!"
+          },
+          "profile_avatar": {
+            "type": "string",
+            "example": "https://cdn.example.com/avatar.png"
+          }
+        },
+        "required": ["email", "name", "password", "profile_avatar"],
+        "additionalProperties": false
+      },
+      "LoginRequestBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "test@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "Password123!"
+          }
+        },
+        "required": ["email", "password"],
+        "additionalProperties": false
+      },
+      "UpdateUserRequestBody": {
+        "type": "object",
+        "description": "At least one field must be provided.",
+        "properties": {
+          "newEmail": { "type": "string", "format": "email" },
+          "newName": { "type": "string", "minLength": 3 },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Must satisfy password policy."
+          },
+          "newProfile_avatar": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cmda5vdl0000708jr8n96g58z" },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "test@example.com"
+          },
+          "name": { "type": "string", "example": "Teszt Elek" },
+          "profile_avatar": {
+            "type": "string",
+            "example": "https://cdn.example.com/avatar.png"
+          }
+        }
+      },
+      "LoginSuccessResponse": {
+        "type": "object",
+        "properties": { "token": { "type": "string" } }
+      }
+    }
+  }
+}

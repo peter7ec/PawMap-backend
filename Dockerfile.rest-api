@@ -1,0 +1,57 @@
+
+FROM node:20-slim AS dependencies
+
+WORKDIR /app
+
+
+RUN apt-get update && apt-get install -y openssl
+RUN npm install -g pnpm
+
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
+COPY services/rest-api/package.json ./services/rest-api/
+
+
+COPY packages/database/prisma ./packages/database/prisma/
+
+
+RUN pnpm install --frozen-lockfile --prod=false
+
+
+
+FROM node:20-slim AS builder
+
+WORKDIR /app
+RUN npm install -g pnpm
+
+
+COPY --from=dependencies /app ./
+
+
+COPY . .
+
+
+RUN pnpm --filter "rest-api^..." build
+
+
+RUN pnpm --filter rest-api deploy --prod --legacy /prod/rest-api
+
+
+
+FROM node:20-slim AS final
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+
+
+COPY --from=builder /prod/rest-api .
+
+
+EXPOSE 8080
+
+CMD ["node", "dist/index.js"]

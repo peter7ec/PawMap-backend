@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json", // Örököljük a build beállításokat
+  "compilerOptions": {
+    // Itt definiáljuk újra az aliasokat, de már a helyes relatív útvonallal
+    "baseUrl": "../../", // A baseUrl a monorepo gyökere legyen
+    "paths": {
+      "@backend/database": ["packages/database/src"],
+      "@backend/database/*": ["packages/database/src/*"],
+      "@backend/shared": ["packages/shared/src"],
+      "@backend/shared/*": ["packages/shared/src/*"]
+    }
+  }
+}
