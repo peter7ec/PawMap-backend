@@ -1,5 +1,8 @@
 # PawMap - Backend
 
+For the English version, please see [README.en.md](./README.en.md).
+
+
 Üdv a PawMap projekt backend repository-jában! Ez a szerver felel a PawMap webalkalmazás adatainak kezeléséért, a felhasználói hitelesítésért és a valós idejű kommunikációért.
 
 **Frontend Repository:** [**PawMap Frontend**](https://github.com/peter7ec/PawMap-frontend)
