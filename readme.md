@@ -48,7 +48,6 @@ A felhasznált technológiák:
 ### API Dokumentáció
 
 A REST API végpontjainak részletes leírása megtalálható a `docs` mappában, Swagger/OpenAPI formátumban.
-*Itt linkelhetsz egy Swagger UI oldalra, ha van, vagy csak jelezheted, hogy a dokumentáció a kódban van.*
 
 
 ---
