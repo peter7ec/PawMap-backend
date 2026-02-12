@@ -47,7 +47,6 @@ The technologies used include:
 ### API Documentation
 
 Detailed documentation for the REST API endpoints can be found in the `docs` folder in Swagger/OpenAPI format.
-*You can link to a Swagger UI page here if you have one, or just indicate that the documentation is in the code.*
 
 ---
 <br>
